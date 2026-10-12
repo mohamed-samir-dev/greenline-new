@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Create the shared page layout component (app/page-layout.tsx) and all 6 new static content pages (about, contact, return-policy, terms, privacy, shipping). All pages are Next.js App Router Server Components (no 'use client'). The contact page uses a mailto: form (GET method) since the project uses static export — no server actions. Depends on FEAT-001 only for the footer links to work end-to-end, but can be implemented independently since the pages are self-contained. Add page-specific CSS to globals.css.",
-  "status": "pending",
+  "status": "completed",
   "steps": [
     "1. Create app/page-layout.tsx — a Server Component that accepts {children, title} props and renders: a consistent page header (brand logo with Leaf icon linking to /, tagline), a <main> with className='page-main wrap' wrapping {children}, and a minimal page footer with copyright and link back to /. Import Leaf from 'lucide-react'. No 'use client' needed.",
 
@@ -41,5 +41,5 @@
     "npm run build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Build successful. npm run typecheck: 0 errors. npm run build: Next.js 16.4.0 static export completed cleanly. All 6 new pages (/, /about, /contact, /privacy, /return-policy, /shipping, /terms) prerendered as static HTML. Worker bundle built via scripts/build-worker.mjs. No TypeScript errors. encType omitted from mailto form (not needed for GET method). PageLayout Server Component created with Leaf icon, brand header, and mini footer."
 }
