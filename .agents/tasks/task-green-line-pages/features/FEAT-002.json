@@ -1,0 +1,45 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Create the shared page layout component (app/page-layout.tsx) and all 6 new static content pages (about, contact, return-policy, terms, privacy, shipping). All pages are Next.js App Router Server Components (no 'use client'). The contact page uses a mailto: form (GET method) since the project uses static export — no server actions. Depends on FEAT-001 only for the footer links to work end-to-end, but can be implemented independently since the pages are self-contained. Add page-specific CSS to globals.css.",
+  "status": "pending",
+  "steps": [
+    "1. Create app/page-layout.tsx — a Server Component that accepts {children, title} props and renders: a consistent page header (brand logo with Leaf icon linking to /, tagline), a <main> with className='page-main wrap' wrapping {children}, and a minimal page footer with copyright and link back to /. Import Leaf from 'lucide-react'. No 'use client' needed.",
+
+    "2. Add CSS for page-layout to app/globals.css: `.page-header{background:var(--green);color:white;padding:18px 0} .page-header .wrap{display:flex;align-items:center;justify-content:space-between;gap:20px} .page-header .brand{color:white} .page-header .brand-icon{background:var(--lime);color:var(--green)} .page-header .back-link{font-size:13px;color:var(--lime);display:flex;align-items:center;gap:6px} .page-main{padding:48px 0 72px;min-height:60vh} .page-main h1{font-size:36px;font-weight:700;margin:0 0 8px;letter-spacing:-.5px} .page-main .page-subtitle{font-size:15px;color:var(--muted);margin:0 0 40px;border-bottom:1px solid var(--line);padding-bottom:24px} .page-section{margin-bottom:36px} .page-section h2{font-size:20px;font-weight:600;margin:0 0 12px;color:var(--green)} .page-section p,.page-section li{font-size:15px;color:#4a5545;line-height:1.85} .page-section ul,.page-section ol{padding-inline-start:1.4em;margin:8px 0} .page-section li{margin-bottom:6px} .page-footer-mini{border-top:1px solid var(--line);padding:20px 0;text-align:center;font-size:13px;color:var(--muted)} .contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start} .contact-info-block{display:flex;flex-direction:column;gap:16px} .contact-info-item{display:flex;flex-direction:column;gap:4px} .contact-info-item .label{font-size:11px;font-weight:600;letter-spacing:1px;color:var(--muted);text-transform:uppercase} .contact-info-item a,.contact-info-item address{font-size:15px;color:var(--ink);font-style:normal} .contact-info-item a:hover{color:var(--green)} .contact-form{background:white;border:1px solid var(--line);border-radius:10px;padding:28px} .contact-form h2{font-size:20px;margin:0 0 20px;color:var(--green)} .contact-form label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;margin-bottom:14px} .contact-form input,.contact-form textarea{border:1px solid var(--line);border-radius:5px;padding:10px 12px;font-size:14px;font-family:inherit;background:var(--paper);color:var(--ink);width:100%} .contact-form textarea{resize:vertical;min-height:100px} .contact-form .submit-btn{background:var(--green);color:white;border:0;border-radius:6px;padding:11px 24px;font-size:14px;font-weight:500;cursor:pointer;width:100%;margin-top:6px} .contact-form .submit-btn:hover{background:#28583f} .placeholder-note{background:#fffbea;border:1px dashed #c8b860;border-radius:6px;padding:12px 16px;font-size:13px;color:#7a6a30;margin-bottom:32px} @media(max-width:760px){.contact-grid{grid-template-columns:1fr} .page-main h1{font-size:28px}}`",
+
+    "3. Create app/about/page.tsx — Server Component titled 'من نحن'. Content: full Arabic description of جرين لاين business (توفير وتسويق الأسمدة الزراعية، تجهيز وتعبئة وتغليف تحت العلامة التجارية). NO legal data section (رقم التسجيل الضريبي and رقم السجل التجاري are omitted entirely per the strict data rule). Address section shows: الاسم التجاري: Green Line — جرين لاين, العنوان: المنصورة، الدقهلية، جمهورية مصر العربية. Import and use PageLayout from '../page-layout'.",
+
+    "4. Create app/contact/page.tsx — Server Component. Shows: phone 01552456445 as <a href='tel:+201552456445'>, WhatsApp as <a href='https://wa.me/201552456445'>, email as <a href='mailto:loutfallaasfora@gmail.com'>, address المنصورة، الدقهلية، جمهورية مصر العربية. Working hours section is omitted entirely (no data available). Contact form uses <form action='mailto:loutfallaasfora@gmail.com' method='GET' encType='text/plain'> with fields: subject (hidden, value='رسالة من موقع جرين لاين'), name (text), phone (tel), email (email), body (textarea for الرسالة). Add a note below the form: 'سيفتح هذا النموذج تطبيق البريد الإلكتروني لديك'. Import PageLayout from '../page-layout'.",
+
+    "5. Create app/return-policy/page.tsx — Server Component. Full Arabic content per the task specification: 8 sections (مقدمة, مدة طلب الاسترجاع with 14-day / 30-day defect rule per Egyptian consumer law, شروط الاسترجاع as bullet list, المنتجات المفتوحة, المنتجات التالفة, خطوات طلب الاسترجاع as numbered 1-6, استرداد الأموال, التواصل with phone 01552456445 and email loutfallaasfora@gmail.com and address المنصورة، الدقهلية، جمهورية مصر العربية). Import PageLayout from '../page-layout'.",
+
+    "6. Create app/terms/page.tsx — Server Component. Full Arabic content: 11 numbered sections per the task specification. Section 3 (الأسعار) mentions الجنيه المصري as primary currency. Section 5 (الدفع) mentions cash on delivery only, no electronic payment currently. Section 11 (بيانات التواصل) shows: phone 01552456445, email loutfallaasfora@gmail.com, address المنصورة، الدقهلية، جمهورية مصر العربية. رقم السجل التجاري and رقم التسجيل الضريبي are omitted entirely. Import PageLayout from '../page-layout'.",
+
+    "7. Create app/privacy/page.tsx — Server Component. Arabic content covering 8 topics: البيانات المجمعة (الاسم، الهاتف، العنوان، البريد), أغراض الاستخدام (معالجة الطلبات والتوصيل), مشاركة بيانات التوصيل مع شركات الشحن, مشاركة بيانات الدفع مع مزود الدفع عند تفعيله, حماية البيانات, ملفات تعريف الارتباط (note: the site uses localStorage for cart state, not tracking cookies — be accurate about this), حقوق العملاء وفق القانون المصري, التواصل (phone 01552456445, email loutfallaasfora@gmail.com). Do NOT include data retention period (no data available). Import PageLayout from '../page-layout'.",
+
+    "8. Create app/shipping/page.tsx — Server Component. Arabic content covering: تكلفة الشحن (مجانية على جميع المنتجات — the one confirmed fact), التواصل عند التأخير (contact phone/email), الشحنات التالفة أو المفقودة, تعليمات تغليف الأسمدة. OMIT entirely: المحافظات المتاحة (no data), وقت التجهيز (no data), مدة التوصيل (no data). Import PageLayout from '../page-layout'.",
+
+    "9. Run `npm run typecheck` — fix any TypeScript errors. Common issues to watch: 1) encType prop on form element uses 'text/plain' string union in React types — if TypeScript complains, use encType='multipart/form-data' instead or cast. 2) Ensure all imports from lucide-react use named imports. 3) Ensure PageLayout accepts ReactNode children."
+  ],
+  "acceptance_criteria": [
+    "app/page-layout.tsx exists and exports a default Server Component accepting children and title props",
+    "All 6 pages exist: app/about/page.tsx, app/contact/page.tsx, app/return-policy/page.tsx, app/terms/page.tsx, app/privacy/page.tsx, app/shipping/page.tsx",
+    "Each page imports and uses PageLayout",
+    "Contact page has phone, WhatsApp, email links with correct numbers/addresses",
+    "Contact page form action is mailto:loutfallaasfora@gmail.com",
+    "Return policy page contains 8 sections with the 14-day / 30-day rule",
+    "Terms page has 11 sections; section 3 mentions EGP as primary; رقم السجل التجاري is absent",
+    "Privacy page accurately describes localStorage (cart) vs cookies",
+    "Shipping page shows free shipping; delivery areas section is absent",
+    "No placeholder text like '[يُستكمل قبل النشر]' appears anywhere — omitted sections are simply not rendered",
+    "`npm run typecheck` passes with 0 errors",
+    "`npm run build` completes successfully"
+  ],
+  "verification": [
+    "npm run typecheck",
+    "npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

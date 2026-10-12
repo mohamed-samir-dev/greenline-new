@@ -1,0 +1,7 @@
+{
+  "task_id": "task-green-line-pages",
+  "task_description": "Add 6 new policy/info pages to the Green Line Next.js e-commerce site, fix currency display (EGP primary), update footer with navigation links, update header nav, update checkout consent checkbox to link to T&C and privacy policy, and create a shared page layout component for all new pages.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null
+}
