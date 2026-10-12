@@ -1,0 +1,32 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Modify app/page.tsx and app/layout.tsx to: (A) swap Price component so EGP is primary (bold/large) and SAR is secondary (small), (B) update benefits section text, (C) expand footer with full navigation and contact links, (D) add nav links to header, (E) update checkout consent checkbox to link /terms and /privacy, (F) update layout.tsx metadata description. Also add required CSS to globals.css for the new footer. These are all changes to existing files — independent of FEAT-002.",
+  "status": "completed",
+  "steps": [
+    "1. In app/page.tsx, update the Price component (line 9): swap so EGP value is in <strong> and SAR value is in <span>. New JSX: `function Price({value}:{value:number}) {return <div className='price'><strong>{number(value*EXCHANGE_RATE)} <small>ج.م</small></strong><span>{number(value)} ر.س</span></div>}`. The .price strong CSS already handles the large bold style; .price>span handles the small secondary style — no CSS change needed for Price itself.",
+    "2. In app/page.tsx, update the benefits section ShieldCheck item: change text from 'أسعار واضحة بعملتين' / 'بالريال السعودي والجنيه المصري' to 'أسعار واضحة بالجنيه المصري' with no subtitle (remove the <small> tag or leave it empty). The <small> can be removed entirely from that benefit item.",
+    "3. In app/page.tsx, replace the existing minimal footer (`<footer className='wrap'>...</footer>`) with a new comprehensive footer that includes: brand section, a nav grid with links (من نحن /about, اتصل بنا /contact, سياسة الاستبدال والاسترجاع /return-policy, الشروط والأحكام /terms, سياسة الخصوصية /privacy, سياسة الشحن والتوصيل /shipping), contact info (phone 01552456445 as tel: link, email loutfallaasfora@gmail.com as mailto: link, address المنصورة، الدقهلية، جمهورية مصر العربية), and copyright line. Use className='site-footer' on the outer element to avoid conflicting with the existing `footer` CSS. Plain <a> tags are fine (no Next.js Link needed in the client component for external navigation to static pages).",
+    "4. In app/page.tsx, update the header nav to add links for 'من نحن' (href='/about') and 'اتصل بنا' (href='/contact') after the existing nav links. These are plain <a> tags. Keep the existing الرئيسية, جميع المنتجات, عن جرين لاين links unchanged.",
+    "5. In app/page.tsx, update the checkout consent checkbox label: replace the current text 'أوافق على استخدام بياناتي لتجهيز الطلب وتوصيله، والدفع عند الاستلام.' with: 'أوافق على <a href=\"/terms\">الشروط والأحكام</a> و<a href=\"/privacy\">سياسة الخصوصية</a> وعلى استخدام بياناتي لتجهيز الطلب وتوصيله.' Keep the <input type='checkbox' required/> unchanged.",
+    "6. In app/layout.tsx, update the metadata description to: 'متجر جرين لاين للأسمدة الزراعية. أسعار بالجنيه المصري. الدفع عند الاستلام. التوصيل لجميع المحافظات.'",
+    "7. In app/globals.css, append CSS for the new footer (.site-footer) and for consent link styles. New footer CSS: `.site-footer{border-top:1px solid var(--line);padding:40px 0 28px;margin-top:60px} .site-footer .footer-inner{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:40px;align-items:start} .site-footer .footer-brand{display:flex;flex-direction:column;gap:12px} .site-footer .footer-brand .tagline{font-size:13px;color:var(--muted);margin:0} .site-footer .footer-nav h4{font-size:12px;font-weight:600;letter-spacing:1px;color:var(--muted);margin:0 0 12px;text-transform:uppercase} .site-footer .footer-nav ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px} .site-footer .footer-nav ul a{font-size:13px;color:var(--ink);transition:color .15s} .site-footer .footer-nav ul a:hover{color:var(--green)} .site-footer .footer-contact{display:flex;flex-direction:column;gap:8px} .site-footer .footer-contact a{font-size:13px;color:var(--ink)} .site-footer .footer-contact address{font-style:normal;font-size:13px;color:var(--muted)} .site-footer .footer-bottom{border-top:1px solid var(--line);margin-top:28px;padding-top:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px} .site-footer .footer-bottom small{font-size:12px;color:var(--muted)} .consent a{color:var(--green);text-decoration:underline} @media(max-width:760px){.site-footer .footer-inner{grid-template-columns:1fr;gap:28px} .site-footer .footer-bottom{flex-direction:column;align-items:flex-start}}`"
+  ],
+  "acceptance_criteria": [
+    "The Price component renders EGP value (value*13.95) in <strong> with 'ج.م' label, and SAR value in <span> with 'ر.س' label",
+    "The benefits ShieldCheck item shows 'أسعار واضحة بالجنيه المصري' with no 'بالريال السعودي' text",
+    "The footer contains links to all 6 policy pages (/about, /contact, /return-policy, /terms, /privacy, /shipping)",
+    "The footer displays phone 01552456445, email loutfallaasfora@gmail.com, address المنصورة، الدقهلية، جمهورية مصر العربية",
+    "The header nav has links to /about and /contact",
+    "The checkout consent checkbox label contains links to /terms and /privacy",
+    "layout.tsx metadata description mentions EGP as primary currency",
+    "`npm run typecheck` passes with 0 errors",
+    "`npm run build` completes successfully"
+  ],
+  "verification": [
+    "npm run typecheck",
+    "npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": "The build output only shows / and /_not-found routes, confirming the new policy pages (/about, /contact, /return-policy, /terms, /privacy, /shipping) do not exist yet. FEAT-002 must create all six page files. The footer and nav links in page.tsx now reference these routes; they will 404 until the pages are created. The country dropdown in checkout still lists Saudi Arabia as an option — FEAT-002 may want to consider whether to remove SAR-only option now that EGP is primary currency. The exchange-note at bottom of catalog still says '1 ريال سعودي = 13.95 جنيه مصري' — FEAT-002 should update or remove this if the site is Egypt-only."
+}
