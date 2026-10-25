@@ -27,9 +27,10 @@ async function generateHmacSha256(secret:string,data:string):Promise<string>{
 
 export default {async fetch(request:Request,env:Env){
  const url=new URL(request.url);
+ const pathname=url.pathname.replace(/\/+$/,'')||'/';
 
  // 1. Kashier Webhook handler
- if(url.pathname==='/api/kashier/webhook'){
+ if(pathname==='/api/kashier/webhook'){
   if(request.method!=='POST')return json({error:'Method not allowed'},405);
   try{
    const raw=await request.text();
@@ -65,7 +66,7 @@ export default {async fetch(request:Request,env:Env){
  }
 
  // 2. Check Order Status
- if(url.pathname==='/api/orders/status'){
+ if(pathname==='/api/orders/status'){
   const orderId=url.searchParams.get('id');
   if(!orderId)return json({error:'معرف الطلب مطلوب.'},400);
   const row=await env.DB.prepare('SELECT id, status, payment_method, total_sar_halalas, total_local_cents, currency, items FROM orders WHERE id = ?').bind(orderId).first<{id:string,status:string,payment_method:string,total_sar_halalas:number,total_local_cents:number,currency:string,items:string}>();
@@ -81,11 +82,13 @@ export default {async fetch(request:Request,env:Env){
  }
 
  // 3. Static assets or other paths
- if(url.pathname!=='/api/orders')return env.ASSETS.fetch(request);
+ if(pathname!=='/api/orders')return env.ASSETS.fetch(request);
 
  // 4. Create Order
  if(request.method!=='POST')return json({error:'Method not allowed'},405);
- if(request.headers.get('Origin')!==url.origin||request.headers.get('Sec-Fetch-Site')==='cross-site')return json({error:'طلب غير مسموح.'},403);
+ const origin=request.headers.get('Origin');
+ const isSameDomain=!origin||origin===url.origin||origin.replace(/^https?:\/\/(www\.)?/,'')===url.host.replace(/^(www\.)?/,'');
+ if(!isSameDomain||request.headers.get('Sec-Fetch-Site')==='cross-site')return json({error:'طلب غير مسموح.'},403);
  if(!request.headers.get('Content-Type')?.includes('application/json'))return json({error:'بيانات غير صالحة.'},415);
  if(Number(request.headers.get('Content-Length')||0)>16000)return json({error:'حجم الطلب أكبر من المسموح.'},413);
 
