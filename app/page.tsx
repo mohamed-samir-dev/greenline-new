@@ -26,7 +26,7 @@ export default function Home(){
  const [panel,setPanel]=useState<'cart'|'checkout'|'success'|null>(null);
  const [selected,setSelected]=useState<Product|null>(null);
  const [toast,setToast]=useState('');
- const [country,setCountry]=useState('EG');
+ const [country,setCountry]=useState('SA');
  const [paymentMethod,setPaymentMethod]=useState<'kashier'|'cash_on_delivery'>('kashier');
  const [receipt,setReceipt]=useState<Receipt|null>(null);
  const [error,setError]=useState('');
@@ -148,6 +148,13 @@ export default function Home(){
 
  const count=Object.values(cart).reduce((a,b)=>a+b,0);
  const total=products.reduce((s,p)=>s+p.price*(cart[p.id]||0),0);
+
+ const isSaudi=country==='SA';
+ const currencyCode=isSaudi?'SAR':'EGP';
+ const currencyLabel=isSaudi?'ر.س':'ج.م';
+ const currencyFullName=isSaudi?'ريال سعودي':'جنيه مصري';
+ const payAmount=isSaudi?total:Math.round(total*EXCHANGE_RATE);
+
  const filtered=products
   .filter(p=>(category==='الكل'||p.category===category)&&(`${p.name} ${p.formula} ${p.category}`).toLowerCase().includes(query.toLowerCase()))
   .sort((a,b)=>sort==='low'?a.price-b.price:sort==='high'?b.price-a.price:0);
@@ -297,8 +304,8 @@ export default function Home(){
 
     <section className="benefits wrap" aria-label="مميزات المتجر">
      <div><Truck/><span><b>توصيل إلى باب مزرعتك</b><small>شحن مجاني على جميع المنتجات</small></span></div>
-     <div><CreditCard/><span><b>دفع إلكتروني آمن</b><small>كاشير: فيزا، ماستركارد، ميزة، ومحافظ</small></span></div>
-     <div><ShieldCheck/><span><b>أسعار واضحة بالجنيه المصري</b></span></div>
+     <div><CreditCard/><span><b>دفع إلكتروني آمن</b><small>كاشير: فيزا، ماستركارد، مدى، ميزة ومحافظ</small></span></div>
+     <div><ShieldCheck/><span><b>أسعار واضحة بالريال والجنيه</b></span></div>
     </section>
 
     <section id="products" className="catalog wrap">
@@ -429,7 +436,7 @@ export default function Home(){
        <hr/>
        <div>
         <span>طريقة الدفع</span>
-        <b>{receipt.paymentMethod==='kashier'?'إلكتروني (كاشير)':'عند الاستلام'}</b>
+        <b>{receipt.paymentMethod==='kashier'?`إلكتروني (كاشير) — ${receipt.currency}`:'عند الاستلام'}</b>
        </div>
        <div>
         <span>حالة الدفع</span>
@@ -439,8 +446,10 @@ export default function Home(){
        </div>
        <hr/>
        <div>
-        <span>المبلغ الإجمالي</span>
-        <b>{number(receipt.total*(receipt.currency==='جنيه مصري'?EXCHANGE_RATE:1))} {receipt.currency}</b>
+        <span>المبلغ الإجمالي المسدد</span>
+        <b style={{fontSize:'16px',color:'var(--green)'}}>
+         {number(receipt.currency==='ريال سعودي'?receipt.total:Math.round(receipt.total*EXCHANGE_RATE))} {receipt.currency}
+        </b>
        </div>
       </div>
       <p className="demo-warning">احتفظ برقم الطلب للمتابعة في أي وقت.</p>
@@ -491,11 +500,11 @@ export default function Home(){
          <form onSubmit={submit}>
           <div className="fields">
            <label>الاسم بالكامل<input name="name" autoComplete="name" required minLength={3} maxLength={80} placeholder="مثال: أحمد محمد"/></label>
-           <label>رقم الهاتف<input name="phone" type="tel" autoComplete="tel" dir="ltr" required maxLength={22} placeholder="01xxxxxxxxx"/></label>
-           <label>الدولة
+           <label>رقم الهاتف<input name="phone" type="tel" autoComplete="tel" dir="ltr" required maxLength={22} placeholder={isSaudi?"05xxxxxxxx":"01xxxxxxxxx"}/></label>
+           <label>الدولة وعملة الدفع
             <select value={country} onChange={e=>setCountry(e.target.value)}>
-             <option value="EG">مصر — الدفع بالجنيه المصري</option>
-             <option value="SA">السعودية — الدفع بالريال السعودي</option>
+             <option value="SA">المملكة العربية السعودية — الدفع بالريال السعودي (SAR)</option>
+             <option value="EG">جمهورية مصر العربية — الدفع بالجنيه المصري (EGP)</option>
             </select>
            </label>
            <label>المدينة<input name="city" autoComplete="address-level2" required minLength={2} maxLength={80} placeholder="اكتب اسم المدينة"/></label>
@@ -514,15 +523,15 @@ export default function Home(){
             <CreditCard size={22} className="payment-option-icon"/>
             <div className="payment-option-info">
              <div className="payment-option-title">
-              <span>دفع إلكتروني آمن (كاشير)</span>
+              <span>دفع إلكتروني آمن (كاشير) — بالـ {currencyFullName}</span>
               <div className="payment-badges">
                <span className="badge">فيزا / ماستركارد</span>
-               <span className="badge">ميزة</span>
-               <span className="badge">محافظ إلكترونية</span>
+               <span className="badge">{isSaudi?'مدى / Mada':'ميزة'}</span>
+               <span className="badge">{isSaudi?'Apple Pay':'محافظ إلكترونية'}</span>
               </div>
              </div>
              <small className="payment-option-desc">
-              الدفع الفوري بالجنيه المصري — المبلغ: {number(total*EXCHANGE_RATE)} ج.م
+              المبلغ المطلوب لعملية الدفع: <b>{number(payAmount)} {currencyFullName}</b> ({currencyCode})
              </small>
             </div>
            </label>
@@ -541,7 +550,7 @@ export default function Home(){
               <span>الدفع عند الاستلام</span>
              </div>
              <small className="payment-option-desc">
-              المبلغ المستحق عند التسليم: {number(total*(country==='EG'?EXCHANGE_RATE:1))} {country==='EG'?'جنيه مصري':'ريال سعودي'}
+              المبلغ المستحق عند التسليم: <b>{number(payAmount)} {currencyFullName}</b>
              </small>
             </div>
            </label>
@@ -553,7 +562,7 @@ export default function Home(){
           </label>
           {error&&<p className="error" role="alert">{error}</p>}
           <button className="primary full" type="submit" disabled={saving}>
-           {saving?'جارٍ معالجة الطلب…':paymentMethod==='kashier'?'الانتقال للدفع عبر كاشير':'تأكيد الطلب'}
+           {saving?'جارٍ معالجة الطلب…':paymentMethod==='kashier'?`سداد ${number(payAmount)} ${currencyLabel} عبر كاشير`:'تأكيد الطلب'}
           </button>
           <button className="back" type="button" onClick={()=>setPanel('cart')}>العودة للسلة</button>
          </form>
