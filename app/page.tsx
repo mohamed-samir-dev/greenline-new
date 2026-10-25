@@ -247,6 +247,7 @@ export default function Home(){
 
     setReceipt(result);
     orderKey.current='';
+    setSaving(false);
    }else{
     setReceipt(result);
     setCart({});

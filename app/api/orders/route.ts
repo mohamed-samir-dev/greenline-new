@@ -19,7 +19,7 @@ interface OrderRequest {
 }
 
 // In-memory duplicate detection (replace with Redis/KV in production)
-const processedRequests = new Map<string, { timestamp: number; orderId: string }>();
+const processedRequests = new Map<string, { timestamp: number; orderId: string; response: any }>();
 
 // Clean up old entries periodically (older than 1 hour)
 function cleanupOldRequests() {
@@ -42,6 +42,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check for duplicate request first
+    cleanupOldRequests();
+    const existing = processedRequests.get(idempotencyKey);
+    if (existing) {
+      console.log('Duplicate request detected, returning existing order:', existing.orderId);
+      return NextResponse.json(existing.response, { status: 200 });
+    }
+
     // Parse request body
     const body: OrderRequest = await request.json();
 
@@ -58,29 +66,6 @@ export async function POST(request: NextRequest) {
         { error: 'الطلب فارغ، أضف منتجات إلى السلة' },
         { status: 400 }
       );
-    }
-
-    // Create payload hash for duplicate detection
-    const payloadString = JSON.stringify({
-      name: body.name,
-      phone: body.phone,
-      city: body.city,
-      address: body.address,
-      country: body.country,
-      items: body.items,
-    });
-    const payloadHash = createHash('sha256').update(payloadString).digest('hex');
-
-    // Check for duplicate request
-    cleanupOldRequests();
-    const existing = processedRequests.get(idempotencyKey);
-    if (existing) {
-      console.log('Duplicate request detected, returning existing order:', existing.orderId);
-      return NextResponse.json({
-        orderId: existing.orderId,
-        status: 'duplicate',
-        message: 'تم معالجة هذا الطلب مسبقاً',
-      });
     }
 
     // Calculate totals
@@ -100,31 +85,23 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Calculate local currency (assuming EGP based on EXCHANGE_RATE)
+    // Calculate local currency
     const totalLocalCents = Math.round(totalSarHalalas * EXCHANGE_RATE);
     const currency = body.country === 'EG' ? 'EGP' : 'SAR';
 
     // Generate order ID
     const orderId = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
 
-    // Store the order (in production, save to database)
-    // For now, we'll just track the request
-    processedRequests.set(idempotencyKey, {
-      timestamp: Date.now(),
-      orderId,
-    });
-
     // Prepare order data
     const orderData = {
       id: orderId,
       requestKey: idempotencyKey,
-      payloadHash,
       name: body.name,
       phone: body.phone,
       city: body.city,
       address: body.address,
       country: body.country,
-      items: JSON.stringify(itemsWithDetails),
+      items: itemsWithDetails,
       totalSarHalalas,
       totalLocalCents,
       currency,
@@ -134,25 +111,35 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
     };
 
-    console.log('Order created:', orderId);
+    console.log('Order created:', orderId, 'Payment method:', body.paymentMethod);
+
+    let responsePayload: any = {
+      orderId,
+      status: 'confirmed',
+      order: orderData,
+    };
 
     // Handle Kashier payment
     if (body.paymentMethod === 'kashier') {
-      const kashierData = await initializeKashierPayment(orderData);
-      return NextResponse.json({
+      const kashierData = initializeKashierPayment(orderData);
+      responsePayload = {
         orderId,
         status: 'pending_payment',
         kashier: kashierData,
         order: orderData,
-      });
+      };
+      
+      console.log('Kashier payment initialized:', kashierData);
     }
 
-    // Cash on delivery
-    return NextResponse.json({
+    // Store in cache for idempotency
+    processedRequests.set(idempotencyKey, {
+      timestamp: Date.now(),
       orderId,
-      status: 'confirmed',
-      order: orderData,
+      response: responsePayload,
     });
+
+    return NextResponse.json(responsePayload, { status: 200 });
 
   } catch (error) {
     console.error('Order processing error:', error);
@@ -163,7 +150,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function initializeKashierPayment(orderData: any) {
+function initializeKashierPayment(orderData: any) {
   const merchantId = process.env.KASHIER_MERCHANT_ID;
   const apiKey = process.env.KASHIER_API_KEY;
   const secretKey = process.env.KASHIER_SECRET_KEY;
@@ -200,11 +187,6 @@ async function initializeKashierPayment(orderData: any) {
     currency: orderData.currency,
     hash,
     mode,
-    iframe: true,
-    display: 'ar',
-    redirectUrl: `${appUrl}/?status=SUCCESS&orderId=${orderData.id}`,
-    failureUrl: `${appUrl}/?status=FAILURE&orderId=${orderData.id}`,
-    checkoutUrl: `${baseUrl}/?merchantId=${merchantId}&orderId=${orderData.id}&amount=${amount}&currency=${orderData.currency}&hash=${hash}&mode=${mode}&metaData=${encodeURIComponent(JSON.stringify({ customer: orderData.name, phone: orderData.phone }))}`,
     configured: true,
   };
 }
