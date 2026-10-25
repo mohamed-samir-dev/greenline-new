@@ -165,8 +165,16 @@ async function initializeKashierPayment(orderData: any) {
   const mode = process.env.KASHIER_MODE || 'test';
   const appUrl = process.env.APP_URL || 'http://localhost:3000';
 
+  console.log('Kashier env check:', {
+    merchantId: merchantId ? `${merchantId.substring(0, 10)}...` : 'MISSING',
+    apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : 'MISSING',
+    secretKey: secretKey ? `${secretKey.substring(0, 10)}...` : 'MISSING',
+    mode,
+  });
+
   // Check if credentials are configured
-  if (!merchantId || !secretKey || merchantId.includes('YOUR_KASHIER')) {
+  if (!merchantId || !secretKey || !apiKey || merchantId.includes('YOUR_KASHIER')) {
+    console.error('Kashier credentials not configured properly');
     return {
       merchantId: merchantId || 'YOUR_KASHIER_MERCHANT_ID',
       mode: mode,
@@ -198,6 +206,7 @@ async function initializeKashierPayment(orderData: any) {
       paymentType: 'credit',
       description: `طلب ${orderData.id}`,
       customer: {
+        email: `customer-${orderData.phone}@temp.kashier.local`,
         reference: orderData.phone,
       },
       metaData: {
@@ -220,8 +229,22 @@ async function initializeKashierPayment(orderData: any) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Kashier session creation failed:', errorData);
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      console.error('Kashier session creation failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+        headers: {
+          authorization: secretKey ? '***' + secretKey.slice(-4) : 'missing',
+          apiKey: apiKey ? '***' + apiKey.slice(-4) : 'missing',
+        }
+      });
       throw new Error(`فشل إنشاء جلسة الدفع: ${errorData.message || response.statusText}`);
     }
 
