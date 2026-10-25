@@ -197,7 +197,7 @@ export default function Home(){
   if(!orderKey.current)orderKey.current=crypto.randomUUID();
 
   try{
-   const response=await fetch('/api/orders',{
+   const response=await fetch('/api/orders/',{
     method:'POST',
     headers:{'Content-Type':'application/json','Idempotency-Key':orderKey.current},
     body:JSON.stringify({
@@ -215,7 +215,7 @@ export default function Home(){
 
    if(paymentMethod==='kashier'&&result.kashier){
     // Check if placeholder credentials
-    if(!result.kashier.merchantId||result.kashier.merchantId.includes('YOUR_KASHIER')){
+    if(!result.kashier.merchantId||result.kashier.merchantId.includes('YOUR_KASHIER')||!result.kashier.configured){
      notify('تنبيه: بوابة كاشير جاهزة، بانتظار إدخال بيانات حساب كاشير في ملف .env لإتمام الدفع الفعلي.');
      setReceipt(result);
      setCart({});
@@ -225,29 +225,24 @@ export default function Home(){
      return;
     }
 
-    // Dynamic loading of Kashier Checkout Script
-    const existingScript=document.getElementById('kashier-iFrame');
-    if(existingScript)existingScript.remove();
+    console.log('Kashier payment data:', result.kashier);
 
-    const script=document.createElement('script');
-    script.id='kashier-iFrame';
-    script.src=`${result.kashier.baseUrl}/kashier-checkout.js`;
-    script.setAttribute('data-amount',result.kashier.amount);
-    script.setAttribute('data-hash',result.kashier.hash);
-    script.setAttribute('data-currency',result.kashier.currency);
-    script.setAttribute('data-orderId',result.kashier.orderId);
-    script.setAttribute('data-merchantId',result.kashier.merchantId);
-    script.setAttribute('data-merchantRedirect',`${window.location.origin}/?paymentStatus=SUCCESS&orderId=${result.kashier.orderId}`);
-    script.setAttribute('data-mode',result.kashier.mode);
-    script.setAttribute('data-display','ar');
-    script.setAttribute('data-type','external');
-    script.setAttribute('data-allowedMethods','card,wallet');
-    script.setAttribute('data-store','جرين لاين');
-    document.body.appendChild(script);
-
+    // Check if we have a valid session URL
+    if (!result.kashier.sessionUrl) {
+      setError('فشل إنشاء جلسة الدفع. حاول مرة أخرى.');
+      setSaving(false);
+      return;
+    }
+    
+    // Store order data for when user returns
     setReceipt(result);
     orderKey.current='';
     setSaving(false);
+    
+    console.log('Redirecting to Kashier session:', result.kashier.sessionUrl);
+    
+    // Redirect to Kashier payment page using the session URL
+    window.location.href = result.kashier.sessionUrl;
    }else{
     setReceipt(result);
     setCart({});

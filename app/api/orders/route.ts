@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
+import { createHash, createHmac } from 'crypto';
 import { products, EXCHANGE_RATE } from '../../products';
 
 // Type definitions
@@ -121,7 +121,15 @@ export async function POST(request: NextRequest) {
 
     // Handle Kashier payment
     if (body.paymentMethod === 'kashier') {
-      const kashierData = initializeKashierPayment(orderData);
+      const kashierData = await initializeKashierPayment(orderData);
+      
+      if (!kashierData.configured) {
+        return NextResponse.json(
+          { error: kashierData.error || kashierData.message || 'فشل تهيئة الدفع الإلكتروني' },
+          { status: 500 }
+        );
+      }
+      
       responsePayload = {
         orderId,
         status: 'pending_payment',
@@ -129,7 +137,7 @@ export async function POST(request: NextRequest) {
         order: orderData,
       };
       
-      console.log('Kashier payment initialized:', kashierData);
+      console.log('Kashier payment initialized with session:', kashierData.sessionUrl);
     }
 
     // Store in cache for idempotency
@@ -150,7 +158,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function initializeKashierPayment(orderData: any) {
+async function initializeKashierPayment(orderData: any) {
   const merchantId = process.env.KASHIER_MERCHANT_ID;
   const apiKey = process.env.KASHIER_API_KEY;
   const secretKey = process.env.KASHIER_SECRET_KEY;
@@ -158,7 +166,7 @@ function initializeKashierPayment(orderData: any) {
   const appUrl = process.env.APP_URL || 'http://localhost:3000';
 
   // Check if credentials are configured
-  if (!merchantId || !apiKey || merchantId.includes('YOUR_KASHIER')) {
+  if (!merchantId || !secretKey || merchantId.includes('YOUR_KASHIER')) {
     return {
       merchantId: merchantId || 'YOUR_KASHIER_MERCHANT_ID',
       mode: mode,
@@ -170,23 +178,72 @@ function initializeKashierPayment(orderData: any) {
   // Calculate amount (in local currency)
   const amount = (orderData.totalLocalCents / 100).toFixed(2);
 
-  // Kashier API endpoint
-  const baseUrl = mode === 'live' 
-    ? 'https://checkout.kashier.io'
-    : 'https://checkout-sandbox.kashier.io';
+  // Kashier API endpoint for creating payment sessions
+  const apiUrl = mode === 'live' 
+    ? 'https://api.kashier.io/v3/payment/sessions'
+    : 'https://test-api.kashier.io/v3/payment/sessions';
 
-  // Generate hash for security (order_id + amount + currency + secret_key)
-  const hashString = `${orderData.id}${amount}${orderData.currency}${secretKey}`;
-  const hash = createHash('sha256').update(hashString).digest('hex');
+  // Create payment session
+  try {
+    const sessionPayload = {
+      merchantId,
+      amount,
+      currency: orderData.currency,
+      order: orderData.id,
+      merchantRedirect: `${appUrl}/?paymentStatus=SUCCESS&orderId=${orderData.id}`,
+      failureRedirect: `${appUrl}/?paymentStatus=FAILURE&orderId=${orderData.id}`,
+      display: 'ar',
+      type: 'one-time',
+      allowedMethods: 'card,wallet',
+      paymentType: 'credit',
+      description: `طلب ${orderData.id}`,
+      customer: {
+        reference: orderData.phone,
+      },
+      metaData: {
+        customerName: orderData.name,
+        phone: orderData.phone,
+        city: orderData.city,
+      },
+    };
 
-  return {
-    baseUrl,
-    merchantId,
-    orderId: orderData.id,
-    amount,
-    currency: orderData.currency,
-    hash,
-    mode,
-    configured: true,
-  };
+    console.log('Creating Kashier session:', sessionPayload);
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': secretKey,
+        'api-key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(sessionPayload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Kashier session creation failed:', errorData);
+      throw new Error(`فشل إنشاء جلسة الدفع: ${errorData.message || response.statusText}`);
+    }
+
+    const sessionData = await response.json();
+    console.log('Kashier session created:', sessionData);
+
+    return {
+      sessionUrl: sessionData.sessionUrl,
+      sessionId: sessionData.sessionId,
+      merchantId,
+      orderId: orderData.id,
+      amount,
+      currency: orderData.currency,
+      mode,
+      configured: true,
+    };
+
+  } catch (error) {
+    console.error('Error creating Kashier session:', error);
+    return {
+      configured: false,
+      error: error instanceof Error ? error.message : 'حدث خطأ أثناء إنشاء جلسة الدفع',
+    };
+  }
 }
