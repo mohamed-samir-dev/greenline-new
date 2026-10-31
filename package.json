@@ -24,6 +24,6 @@
     "drizzle-kit": "^0.31.11",
     "esbuild": "^0.28.2",
     "typescript": "^5",
-    "wrangler": "^4.148.0"
+    "wrangler": "^4.156.0"
   }
 }
